@@ -1,0 +1,395 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0,maximum-scale=1.0,minimum-scale=1.0,user-scalable=no,viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<title>Maze Dungeon Labyrinth</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Cinzel:wght@400;700;900&family=Cinzel+Decorative:wght@400;700&display=swap');
+*{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
+html,body{background:#0a0005;font-family:'Cinzel',serif;overflow:hidden;height:100%;width:100%;
+  user-select:none;-webkit-user-select:none;position:fixed;top:0;left:0;}
+:root{--gold:#ffd700;--dg:#b8860b;}
+.screen{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;}
+.screen.hidden{display:none!important;}
+
+/* ══ START ══ */
+#startScreen{background:radial-gradient(ellipse at center,#1a0a2e 0%,#0a0005 70%);z-index:10;}
+.particles{position:absolute;inset:0;overflow:hidden;pointer-events:none;}
+.particle{position:absolute;border-radius:50%;animation:floatUp linear infinite;opacity:0;}
+@keyframes floatUp{0%{transform:translateY(100vh) translateX(0);opacity:0}10%{opacity:1}90%{opacity:1}100%{transform:translateY(-20px) translateX(var(--d));opacity:0}}
+.tl,.tr2{position:absolute;top:10%;width:48px;animation:tF .15s infinite alternate;}
+.tl{left:5%}.tr2{right:5%;transform:scaleX(-1)}
+@keyframes tF{0%{filter:brightness(1) drop-shadow(0 0 12px #f60)}100%{filter:brightness(1.5) drop-shadow(0 0 28px #fb0)}}
+.tsv{width:48px;height:115px;}
+.tc{text-align:center;animation:tA 1.5s ease-out forwards;}
+@keyframes tA{from{opacity:0;transform:translateY(-28px) scale(.87)}to{opacity:1;transform:translateY(0) scale(1)}}
+.tm{font-family:'Cinzel Decorative',serif;font-size:clamp(1.7rem,5vw,4.2rem);font-weight:900;
+  background:linear-gradient(180deg,#fff7d4 0%,#ffd700 40%,#b8860b 80%,#8b6914 100%);
+  -webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;
+  filter:drop-shadow(0 0 16px rgba(255,215,0,.8));line-height:1.1;letter-spacing:3px;}
+.ts2{font-size:clamp(.65rem,1.7vw,1.2rem);color:#cc8800;letter-spacing:8px;margin-top:6px;
+  text-transform:uppercase;animation:pulse 2s ease-in-out infinite;}
+@keyframes pulse{0%,100%{opacity:.7}50%{opacity:1}}
+.divl{width:min(360px,78vw);height:2px;background:linear-gradient(90deg,transparent,var(--gold),transparent);
+  margin:13px auto;position:relative;}
+.divl::before{content:'⚔';position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);
+  color:var(--gold);font-size:.95rem;background:#0a0005;padding:0 8px;}
+.sr{display:flex;gap:12px;margin-top:13px;flex-wrap:wrap;justify-content:center;}
+.sbox{text-align:center;padding:6px 13px;border:1px solid #442200;background:rgba(40,20,0,.5);}
+.sl{font-size:.55rem;color:#886644;letter-spacing:2px;text-transform:uppercase;}
+.sv{font-size:.9rem;color:var(--gold);font-weight:700;}
+.stbtn{margin-top:20px;padding:13px 44px;font-family:'Cinzel',serif;font-size:.95rem;font-weight:700;
+  letter-spacing:3px;text-transform:uppercase;
+  background:linear-gradient(180deg,#3a2000,#1a0e00);color:var(--gold);border:2px solid var(--dg);
+  cursor:pointer;clip-path:polygon(12px 0%,calc(100% - 12px) 0%,100% 50%,calc(100% - 12px) 100%,12px 100%,0% 50%);
+  transition:all .3s;animation:bG 2s ease-in-out infinite;}
+@keyframes bG{0%,100%{box-shadow:0 0 16px rgba(255,165,0,.3)}50%{box-shadow:0 0 35px rgba(255,165,0,.7)}}
+.stbtn:active{background:linear-gradient(180deg,#5a3500,#2a1500);animation:none;}
+.ctag{position:absolute;bottom:16px;font-size:.7rem;color:#775500;letter-spacing:2px;
+  text-transform:uppercase;animation:cG 3s ease-in-out infinite;}
+@keyframes cG{0%,100%{color:#775500}50%{color:#cc8800;text-shadow:0 0 8px rgba(204,136,0,.5)}}
+.cd{position:absolute;border-color:#442200;border-style:solid;opacity:.6;}
+.cd.tl{top:10px;left:10px;width:60px;height:60px;border-width:2px 0 0 2px}
+.cd.tr{top:10px;right:10px;width:60px;height:60px;border-width:2px 2px 0 0}
+.cd.bl{bottom:10px;left:10px;width:60px;height:60px;border-width:0 0 2px 2px}
+.cd.br{bottom:10px;right:10px;width:60px;height:60px;border-width:0 2px 2px 0}
+
+/* ══ GAME ══ */
+#gameScreen{background:#000;}
+#gameCanvas{display:block;position:absolute;inset:0;}
+
+/* ── TOP HUD ── */
+/* Left panel: health + minimap stacked */
+#hudLeft{
+  position:absolute;top:8px;left:8px;
+  display:flex;flex-direction:column;gap:4px;
+  z-index:6;pointer-events:none;
+}
+.hl{font-size:.48rem;color:#886644;letter-spacing:2px;text-transform:uppercase;}
+.hv{font-size:.78rem;color:var(--gold);font-weight:700;}
+.hbw{width:120px;height:7px;background:rgba(0,0,0,.6);border:1px solid #442200;border-radius:2px;overflow:hidden;}
+#healthBar{height:100%;background:linear-gradient(90deg,#22cc44,#22cc44aa);transition:width .3s;border-radius:2px;}
+#minimap{
+  width:88px;height:88px;
+  border:1px solid var(--dg);background:rgba(0,0,0,.85);
+  display:block;margin-top:2px;
+}
+
+/* Right panel: keys + score */
+#hudRight{
+  position:absolute;top:8px;right:8px;
+  display:flex;flex-direction:column;gap:2px;align-items:flex-end;
+  z-index:6;pointer-events:none;
+}
+
+/* Center top: level + pause */
+#hudCenter{
+  position:absolute;top:8px;left:50%;transform:translateX(-50%);
+  display:flex;flex-direction:column;align-items:center;gap:3px;
+  z-index:6;
+}
+#levelBadge{font-size:.5rem;color:#886644;letter-spacing:2px;text-transform:uppercase;
+  white-space:nowrap;background:rgba(0,0,0,.6);padding:2px 8px;border:1px solid #331100;
+  pointer-events:none;}
+#pauseBtn{padding:5px 12px;font-family:'Cinzel',serif;font-size:.6rem;
+  color:var(--gold);background:rgba(20,10,0,.92);border:1px solid #442200;
+  cursor:pointer;letter-spacing:1px;pointer-events:all;}
+#pauseBtn:active{background:rgba(60,30,0,.95);}
+
+/* Message */
+#message{position:absolute;top:38%;left:50%;transform:translate(-50%,-50%);
+  font-family:'Cinzel Decorative',serif;font-size:clamp(.85rem,2.2vw,1.5rem);
+  color:var(--gold);text-shadow:0 0 20px var(--gold);pointer-events:none;
+  opacity:0;transition:opacity .5s;z-index:6;white-space:nowrap;text-align:center;}
+
+/* ══ LEFT TOUCH ZONE (full bottom-left area) ══ */
+#leftZone{
+  position:absolute;
+  left:0;bottom:0;
+  width:46%;height:55%;   /* big zone for easy thumb reach */
+  z-index:7;touch-action:none;
+}
+/* Joystick visual — centered inside left zone */
+#joyVisual{
+  position:absolute;
+  left:24px;bottom:24px;
+  width:120px;height:120px;
+  pointer-events:none;
+}
+#jBase{
+  position:absolute;inset:0;border-radius:50%;
+  background:rgba(255,165,0,.08);border:2px solid rgba(255,165,0,.2);
+}
+#jKnob{
+  position:absolute;width:44px;height:44px;border-radius:50%;
+  background:rgba(255,165,0,.45);border:2px solid rgba(255,165,0,.75);
+  left:50%;top:50%;transform:translate(-50%,-50%);
+}
+#swipeHint{
+  position:absolute;left:24px;bottom:24px;
+  width:120px;height:120px;border-radius:50%;
+  background:rgba(255,165,0,.06);border:2px dashed rgba(255,165,0,.2);
+  display:none;align-items:center;justify-content:center;pointer-events:none;
+}
+#swipeHint span{font-size:.52rem;color:rgba(255,165,0,.4);letter-spacing:1px;text-align:center;line-height:1.5;}
+
+/* ══ RIGHT SIDE CONTROLS ══ */
+/* Attack button — bottom right corner */
+#attackBtn{
+  position:absolute;right:20px;bottom:20px;
+  width:76px;height:76px;border-radius:50%;
+  background:radial-gradient(circle,#3a0000,#1a0000);
+  border:3px solid #cc2200;
+  box-shadow:0 0 18px rgba(200,0,0,.4);
+  cursor:pointer;z-index:8;touch-action:none;
+  display:flex;flex-direction:column;align-items:center;justify-content:center;
+  transition:all .1s;
+}
+#attackBtn:active,#attackBtn.pressed{
+  background:radial-gradient(circle,#880000,#440000);
+  box-shadow:0 0 30px rgba(255,50,0,.7);transform:scale(.91);}
+.sw{font-size:1.9rem;line-height:1;}
+.al{font-size:.4rem;color:#ff7755;letter-spacing:1px;text-transform:uppercase;margin-top:1px;}
+
+/* Turn buttons — above attack, properly separated */
+#turnLeft{
+  position:absolute;right:112px;bottom:38px;
+  width:54px;height:54px;border-radius:50%;
+  background:rgba(35,20,0,.82);border:2px solid rgba(255,165,0,.4);
+  font-size:1.3rem;cursor:pointer;z-index:8;touch-action:none;
+  display:flex;align-items:center;justify-content:center;color:#cc8800;
+}
+#turnRight{
+  position:absolute;right:50px;bottom:105px;
+  width:54px;height:54px;border-radius:50%;
+  background:rgba(35,20,0,.82);border:2px solid rgba(255,165,0,.4);
+  font-size:1.3rem;cursor:pointer;z-index:8;touch-action:none;
+  display:flex;align-items:center;justify-content:center;color:#cc8800;
+}
+#turnLeft:active,#turnRight:active{background:rgba(100,55,0,.9);color:var(--gold);}
+
+/* ══ PAUSE MENU ══ */
+#pauseScreen{background:rgba(0,0,0,.94);z-index:15;}
+.pt{font-family:'Cinzel Decorative',serif;font-size:clamp(1.3rem,3.2vw,2.6rem);font-weight:900;
+  color:var(--gold);text-shadow:0 0 16px rgba(255,215,0,.6);margin-bottom:6px;}
+.ps{color:#886644;font-size:.68rem;letter-spacing:3px;margin-bottom:5px;}
+.pli{color:#cc8800;font-size:.78rem;letter-spacing:2px;margin-bottom:16px;}
+.pm{display:flex;flex-direction:column;gap:10px;width:min(280px,88vw);}
+.pb{padding:11px 16px;font-family:'Cinzel',serif;font-size:.82rem;font-weight:700;
+  letter-spacing:2px;text-transform:uppercase;background:rgba(30,15,0,.8);
+  color:var(--gold);border:1px solid #442200;cursor:pointer;text-align:center;transition:all .2s;}
+.pb:active{background:rgba(80,40,0,.9);border-color:var(--dg);}
+.pb.danger{color:#ff6644;border-color:#662200;}
+.pb.danger:active{background:rgba(80,20,0,.9);}
+.tog-row{display:flex;align-items:center;justify-content:space-between;
+  padding:9px 14px;background:rgba(30,15,0,.8);border:1px solid #442200;}
+.tog-lbl{font-size:.72rem;color:#cc8800;letter-spacing:1px;}
+.tog{width:42px;height:20px;border-radius:10px;background:#331100;border:1px solid #442200;
+  cursor:pointer;position:relative;transition:background .3s;flex-shrink:0;}
+.tog.on{background:#884400;}
+.tog::after{content:'';position:absolute;top:2px;left:2px;width:14px;height:14px;
+  border-radius:50%;background:var(--gold);transition:left .3s;}
+.tog.on::after{left:26px;}
+.lsb{padding:10px;font-family:'Cinzel',serif;font-size:.75rem;letter-spacing:1px;
+  background:rgba(20,10,0,.8);color:#cc8800;border:1px solid #332200;
+  cursor:pointer;text-align:left;transition:all .2s;width:100%;}
+.lsb:active{background:rgba(60,30,0,.9);color:var(--gold);}
+.lsb.cur{border-left:3px solid var(--gold);color:var(--gold);}
+.lsb:disabled{opacity:.4;cursor:not-allowed;}
+
+/* ══ END ══ */
+#endScreen{background:radial-gradient(ellipse at center,#1a0008 0%,#000 70%);z-index:20;}
+.et{font-family:'Cinzel Decorative',serif;font-size:clamp(1.5rem,4.2vw,3rem);font-weight:900;animation:eP 1s ease-in-out infinite;}
+@keyframes eP{0%,100%{filter:brightness(1)}50%{filter:brightness(1.5) drop-shadow(0 0 20px currentColor)}}
+.et.win{color:var(--gold)}.et.lose{color:#cc2200}
+.em{color:#886644;margin:12px 0;font-size:.85rem;text-align:center;padding:0 18px;line-height:1.5;}
+.pab{padding:11px 40px;font-family:'Cinzel',serif;font-size:.88rem;font-weight:700;
+  letter-spacing:2px;background:rgba(30,15,0,.8);color:var(--gold);border:2px solid var(--dg);
+  cursor:pointer;text-transform:uppercase;transition:all .3s;margin-top:7px;display:block;}
+.pab:active{background:rgba(80,40,0,.9);}
+</style>
+</head>
+<body>
+
+<!-- ═══ START SCREEN ═══ -->
+<div id="startScreen" class="screen">
+  <div class="cd tl"></div><div class="cd tr"></div><div class="cd bl"></div><div class="cd br"></div>
+  <div class="particles" id="particles"></div>
+
+  <div class="tl">
+    <svg class="tsv" viewBox="0 0 48 115">
+      <rect x="17" y="58" width="14" height="50" rx="3" fill="#5a3010"/>
+      <rect x="14" y="44" width="20" height="20" rx="2" fill="#3a2008"/>
+      <ellipse cx="24" cy="48" rx="10" ry="7" fill="#aa5500"/>
+      <ellipse cx="24" cy="35" rx="9" ry="16" fill="#ff4400" opacity=".9"><animate attributeName="ry" values="16;20;14;18;16" dur=".3s" repeatCount="indefinite"/><animate attributeName="cy" values="35;32;38;34;35" dur=".3s" repeatCount="indefinite"/></ellipse>
+      <ellipse cx="24" cy="28" rx="6" ry="11" fill="#ff8800" opacity=".9"><animate attributeName="ry" values="11;14;9;13;11" dur=".25s" repeatCount="indefinite"/></ellipse>
+      <ellipse cx="24" cy="23" rx="3.5" ry="8" fill="#ffdd00"><animate attributeName="ry" values="8;11;6;10;8" dur=".2s" repeatCount="indefinite"/></ellipse>
+      <ellipse cx="24" cy="20" rx="2" ry="5" fill="white" opacity=".85"><animate attributeName="ry" values="5;8;4;7;5" dur=".18s" repeatCount="indefinite"/></ellipse>
+    </svg>
+  </div>
+  <div class="tr2">
+    <svg class="tsv" viewBox="0 0 48 115">
+      <rect x="17" y="58" width="14" height="50" rx="3" fill="#5a3010"/>
+      <rect x="14" y="44" width="20" height="20" rx="2" fill="#3a2008"/>
+      <ellipse cx="24" cy="48" rx="10" ry="7" fill="#aa5500"/>
+      <ellipse cx="24" cy="35" rx="9" ry="16" fill="#ff4400" opacity=".9"><animate attributeName="ry" values="16;13;20;15;16" dur=".28s" repeatCount="indefinite"/></ellipse>
+      <ellipse cx="24" cy="28" rx="6" ry="11" fill="#ff8800" opacity=".9"><animate attributeName="ry" values="11;9;14;10;11" dur=".22s" repeatCount="indefinite"/></ellipse>
+      <ellipse cx="24" cy="23" rx="3.5" ry="8" fill="#ffdd00"><animate attributeName="ry" values="8;6;11;7;8" dur=".19s" repeatCount="indefinite"/></ellipse>
+      <ellipse cx="24" cy="20" rx="2" ry="5" fill="white" opacity=".85"/>
+    </svg>
+  </div>
+
+  <div class="tc">
+    <div class="tm">MAZE DUNGEON</div>
+    <div class="tm" style="font-size:clamp(1.1rem,2.8vw,2.4rem);letter-spacing:13px;">LABYRINTH</div>
+    <div class="divl"></div>
+    <div class="ts2">Enter If You Dare</div>
+    <div class="sr">
+      <div class="sbox"><div class="sl">Mode</div><div class="sv">3D</div></div>
+      <div class="sbox"><div class="sl">Levels</div><div class="sv">5</div></div>
+      <div class="sbox"><div class="sl">Health</div><div class="sv">300 HP</div></div>
+    </div>
+    <button class="stbtn" onclick="startGame()">⚔ Enter Dungeon ⚔</button>
+  </div>
+  <div class="ctag">✦ Create By Muhammad Usman ✦</div>
+</div>
+
+<!-- ═══ GAME SCREEN ═══ -->
+<div id="gameScreen" class="screen hidden">
+  <canvas id="gameCanvas"></canvas>
+
+  <!-- LEFT HUD: health + minimap stacked -->
+  <div id="hudLeft">
+    <div class="hl">Health</div>
+    <div class="hbw"><div id="healthBar" style="width:100%"></div></div>
+    <div class="hv" id="hpText">300/300</div>
+    <!-- Minimap directly below health on left side -->
+    <canvas id="minimap"></canvas>
+  </div>
+
+  <!-- CENTER HUD: level + pause -->
+  <div id="hudCenter">
+    <div id="levelBadge">Level 1 — The Dark Passage</div>
+    <button id="pauseBtn" onclick="togglePause()">⏸ PAUSE</button>
+  </div>
+
+  <!-- RIGHT HUD: keys + score -->
+  <div id="hudRight">
+    <div class="hl">Keys</div><div class="hv" id="keysText">0/3</div>
+    <div class="hl" style="margin-top:4px">Score</div><div class="hv" id="scoreText">0</div>
+  </div>
+
+  <div id="message"></div>
+
+  <!-- LEFT ZONE: joystick / swipe -->
+  <div id="leftZone">
+    <div id="joyVisual">
+      <div id="jBase"></div>
+      <div id="jKnob"></div>
+    </div>
+    <div id="swipeHint"><span>SWIPE<br>TO MOVE</span></div>
+  </div>
+
+  <!-- TURN BUTTONS — fixed positions, no overlap -->
+  <button id="turnLeft">◀</button>
+  <button id="turnRight">▶</button>
+
+  <!-- ATTACK BUTTON -->
+  <div id="attackBtn">
+    <div class="sw">🗡️</div>
+    <div class="al">ATTACK</div>
+  </div>
+
+  <div class="ctag" style="bottom:5px;font-size:.55rem;">✦ Create By Muhammad Usman ✦</div>
+</div>
+
+<!-- ═══ PAUSE SCREEN ═══ -->
+<div id="pauseScreen" class="screen hidden">
+  <div class="pt">⏸ PAUSED</div>
+  <div class="ps">Game Suspended</div>
+  <div id="pLvlInfo" class="pli">Level 1</div>
+  <div class="pm" id="pMain">
+    <button class="pb" onclick="togglePause()">▶ Resume Game</button>
+    <div class="tog-row">
+      <span class="tog-lbl">🕹 Joystick Mode</span>
+      <div class="tog on" id="joyTog" onclick="toggleCtrl()"></div>
+    </div>
+    <div class="tog-row">
+      <span class="tog-lbl">🌙 Dark Theme</span>
+      <div class="tog on" id="themeTog" onclick="toggleTheme()"></div>
+    </div>
+    <button class="pb" onclick="showLS()">🗺 Select Level</button>
+    <button class="pb danger" onclick="resetToStart()">🏠 Main Menu</button>
+  </div>
+  <div id="lsMenu" style="display:none;margin-top:14px;width:min(280px,88vw);">
+    <div style="color:#886644;font-size:.65rem;letter-spacing:2px;text-align:center;margin-bottom:8px;">SELECT LEVEL</div>
+    <div style="display:flex;flex-direction:column;gap:6px;">
+      <button class="lsb" onclick="jumpLevel(0)" id="lb0">⚔ Level 1 — The Dark Passage</button>
+      <button class="lsb" onclick="jumpLevel(1)" id="lb1">🗡 Level 2 — The Cursed Halls</button>
+      <button class="lsb" onclick="jumpLevel(2)" id="lb2">💀 Level 3 — The Bone Catacombs</button>
+      <button class="lsb" onclick="jumpLevel(3)" id="lb3">🔥 Level 4 — The Infernal Gates</button>
+      <button class="lsb" onclick="jumpLevel(4)" id="lb4">👑 Level 5 — The Dragon's Keep</button>
+    </div>
+    <button class="pb" onclick="hideLS()" style="margin-top:9px;font-size:.7rem;">← Back</button>
+  </div>
+  <div class="ctag" style="bottom:12px;">✦ Create By Muhammad Usman ✦</div>
+</div>
+
+<!-- ═══ END SCREEN ═══ -->
+<div id="endScreen" class="screen hidden">
+  <div class="cd tl"></div><div class="cd tr"></div><div class="cd bl"></div><div class="cd br"></div>
+  <div id="endTitle" class="et win">VICTORY!</div>
+  <div id="endMsg" class="em">You conquered the labyrinth!</div>
+  <div class="hv" id="finalScore" style="font-size:1.1rem;color:var(--gold);margin:10px 0;">Score: 0</div>
+  <button class="pab" onclick="startGame()">⚔ Play Again ⚔</button>
+  <button class="pab" style="background:rgba(10,5,0,.8);margin-top:5px;" onclick="resetToStart()">🏠 Main Menu</button>
+  <div class="ctag" style="bottom:16px;">✦ Create By Muhammad Usman ✦</div>
+</div>
+
+<script>
+// ════════════════════════════════════════════
+// ZOOM PREVENTION — complete
+// ════════════════════════════════════════════
+['gesturestart','gesturechange','gestureend'].forEach(n =>
+  document.addEventListener(n, e => e.preventDefault(), { passive: false }));
+document.addEventListener('wheel', e => { if (e.ctrlKey) e.preventDefault(); }, { passive: false });
+document.addEventListener('touchstart', e => { if (e.touches.length > 1) e.preventDefault(); }, { passive: false });
+let _lt = 0;
+document.addEventListener('touchend', e => {
+  const n = Date.now(); if (n - _lt < 280) e.preventDefault(); _lt = n;
+}, { passive: false });
+
+const keys = {};
+window.addEventListener('keydown', e => {
+  keys[e.code] = true;
+  if (['Space','ArrowUp','ArrowDown','ArrowLeft','ArrowRight'].includes(e.code)) e.preventDefault();
+});
+window.addEventListener('keyup', e => keys[e.code] = false);
+
+// ════════════════════════════════════════════
+// AUDIO
+// ════════════════════════════════════════════
+let AC = null;
+function getAC() {
+  if (!AC) AC = new (window.AudioContext || window.webkitAudioContext)();
+  if (AC.state === 'suspended') AC.resume();
+  return AC;
+}
+function tone(f, type, dur, vol, f0) {
+  try {
+    const ac=getAC(),o=ac.createOscillator(),g=ac.createGain();
+    o.connect(g);g.connect(ac.destination);o.type=type;
+    if(f0){o.frequency.setValueAtTime(f0,ac.currentTime);o.frequency.exponentialRampToValueAtTime(f,ac.currentTime+dur*.3);}
+    else o.frequency.value=f;
+    g.gain.setValueAtTime(vol,ac.currentTime);g.gain.exponentialRampToValueAtTime(0.001,ac.currentTime+dur);
+    o.start();o.stop(ac.currentTime+dur);
+  }catch(e){}
+}
+function noise(dur,vol,fc,ft='bandpass'){
+  try{
+    const ac=getAC(),buf=ac.createBuffer(1,ac.sampleRate*dur,ac.sampleRate);
+    const d=buf.getChannelData(0);for(let i=0;i<d.length;i++)d[i]=Math.random()*2-1;
+    const src=ac.createBufferSource(),g=ac.createGain(),f=ac.createBiquadFilter();
+    f.t
